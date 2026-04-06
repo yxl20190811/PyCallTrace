@@ -746,11 +746,19 @@
 
                 if (parsed.type === 'enter') {
                     // 函数进入：在当前节点（栈顶）下新增子节点，并将其压入栈
+                    // 解析内容：funcName@filePath:lineNum
+                    const fullNameText = parsed.content;
+                    let funcNameOnly = fullNameText;
+                    const atIndex = fullNameText.indexOf('@');
+                    if (atIndex !== -1) {
+                        funcNameOnly = fullNameText.substring(0, atIndex);
+                    }
+                    
                     const newNode = {
-                        name: parsed.content,
+                        name: funcNameOnly,
                         children: [],
                         depth: 0,
-                        fullName: parsed.content,
+                        fullName: fullNameText,
                         isMessage: false
                     };
                     const currentNode = callStack[callStack.length - 1];
