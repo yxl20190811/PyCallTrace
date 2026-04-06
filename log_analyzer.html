@@ -772,9 +772,32 @@
                 } else {
                     // 用户信息行：创建消息节点并添加到当前节点（栈顶）的子节点列表
                     const currentNode = callStack[callStack.length - 1];
+                    
+                    // 尝试解析消息中的文件信息（格式：文件名:行号|消息内容 或 完整路径:行号|消息内容）
+                    let messageContent = parsed.content;
+                    let fileInfo = null;
+                    
+                    // 匹配模式：something.py:数字| 或 路径/something.py:数字|
+                    const filePattern = /^(.+\.py):(\d+)\|(.*)$/;
+                    const fileMatch = messageContent.match(filePattern);
+                    
+                    if (fileMatch) {
+                        const filePath = fileMatch[1];
+                        const lineNum = fileMatch[2];
+                        const actualMessage = fileMatch[3];
+                        
+                        fileInfo = {
+                            path: filePath,
+                            line: lineNum
+                        };
+                        // 保持原始格式：文件名:行号|消息内容
+                        messageContent = `${fileMatch[0]}`;
+                    }
+                    
                     const messageNode = {
                         isMessage: true,
-                        content: parsed.content,
+                        content: messageContent,
+                        fileInfo: fileInfo,
                         children: [],
                         depth: 0
                     };
@@ -796,11 +819,61 @@
         }
 
         function renderTreeNode(node, parentContainer) {
-            // 如果是消息节点，直接渲染消息内容
+            // 如果是消息节点，渲染消息内容，如果有文件信息则支持点击
             if (node.isMessage) {
                 const msgElement = document.createElement('div');
                 msgElement.className = 'tree-node message-node';
-                msgElement.innerHTML = `<div class="message-item">${escapeHtml(node.content)}</div>`;
+                
+                // 如果有文件信息，将文件部分做成可点击的
+                if (node.fileInfo) {
+                    // 解析完整内容：文件名:行号|消息内容
+                    const fullPath = node.fileInfo.path;
+                    const lineNum = node.fileInfo.line;
+                    const pathParts = fullPath.split(/[\\/]/);
+                    const fileName = pathParts.pop();
+                    const fileText = `${fileName}:${lineNum}|`;
+                    
+                    // 找到 fileText 在 content 中的位置
+                    const contentStartIndex = node.content.indexOf(fileText);
+                    
+                    if (contentStartIndex !== -1) {
+                        // 文件信息前的内容
+                        const beforeFile = node.content.substring(0, contentStartIndex);
+                        // 文件信息后的内容
+                        const afterFile = node.content.substring(contentStartIndex + fileText.length);
+                        
+                        // 添加文件信息前的内容
+                        if (beforeFile) {
+                            msgElement.appendChild(document.createTextNode(beforeFile));
+                        }
+                        
+                        // 可点击的文件链接
+                        const fileLink = document.createElement('span');
+                        fileLink.style.color = '#6a9955';
+                        fileLink.style.cursor = 'pointer';
+                        fileLink.style.fontWeight = 'bold';
+                        fileLink.textContent = fileText;
+                        
+                        fileLink.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            showSourceFile(node.fileInfo.path, node.fileInfo.line);
+                        });
+                        
+                        msgElement.appendChild(fileLink);
+                        
+                        // 添加文件信息后的内容
+                        if (afterFile) {
+                            msgElement.appendChild(document.createTextNode(afterFile));
+                        }
+                    } else {
+                        // 如果找不到，直接显示原始内容
+                        msgElement.textContent = node.content;
+                    }
+                } else {
+                    // 没有文件信息，直接显示原始内容
+                    msgElement.textContent = node.content;
+                }
+                
                 parentContainer.appendChild(msgElement);
                 return;
             }
