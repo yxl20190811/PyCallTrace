@@ -173,6 +173,7 @@
             font-family: 'Consolas', 'Monaco', monospace;
             font-size: 13px;
             line-height: 1.6;
+            min-height: 100px;
         }
 
         .log-line {
@@ -186,6 +187,23 @@
 
         .log-line.message {
             color: #ce9178;
+        }
+
+        /* 水平拖动分隔条样式 */
+        .h-splitter {
+            height: 6px;
+            background: #ddd;
+            cursor: row-resize;
+            transition: background 0.2s;
+            flex-shrink: 0;
+        }
+
+        .h-splitter:hover {
+            background: #3498db;
+        }
+
+        .h-splitter.active {
+            background: #2980b9;
         }
 
         .empty-state {
@@ -293,7 +311,8 @@
             flex-direction: column;
             background: #1e1e1e;
             border-top: 2px solid #3498db;
-            max-height: 50vh;
+            height: 300px;
+            min-height: 100px;
             overflow: hidden;
         }
 
@@ -403,7 +422,10 @@
                 <div class="empty-state">选择线程查看日志内容</div>
             </div>
             <div class="stats" id="log-stats"></div>
-            
+
+            <!-- 水平拖动分隔条 -->
+            <div class="h-splitter" id="h-splitter"></div>
+
             <!-- 源代码查看器 -->
             <div class="source-viewer" id="source-viewer">
                 <div class="source-viewer-header">
@@ -445,6 +467,10 @@
         const leftPanel = document.getElementById('left-panel');
         let isDragging = false;
 
+        // 水平拖动分隔条（日志内容和源代码查看器之间）
+        const hSplitter = document.getElementById('h-splitter');
+        let isHDragging = false;
+
         splitter.addEventListener('mousedown', (e) => {
             isDragging = true;
             splitter.classList.add('active');
@@ -470,6 +496,32 @@
                 splitter.classList.remove('active');
                 document.body.style.cursor = '';
                 document.body.style.userSelect = '';
+            }
+            if (isHDragging) {
+                isHDragging = false;
+                hSplitter.classList.remove('active');
+                document.body.style.cursor = '';
+                document.body.style.userSelect = '';
+            }
+        });
+
+        // 水平分隔条拖动事件
+        hSplitter.addEventListener('mousedown', (e) => {
+            isHDragging = true;
+            hSplitter.classList.add('active');
+            document.body.style.cursor = 'row-resize';
+            document.body.style.userSelect = 'none';
+            e.preventDefault();
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isHDragging) return;
+            const rightPanelRect = document.querySelector('.right-panel').getBoundingClientRect();
+            const newHeight = rightPanelRect.bottom - e.clientY;
+            const minHeight = 100;
+            const maxHeight = rightPanelRect.height - 100;
+            if (newHeight >= minHeight && newHeight <= maxHeight) {
+                sourceViewer.style.height = newHeight + 'px';
             }
         });
 

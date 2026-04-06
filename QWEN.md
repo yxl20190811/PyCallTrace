@@ -21,8 +21,10 @@ PyCallTrace/
 ├── main.py              # 追踪器入口：配置日志格式 + sys.setprofile 全局钩子
 ├── function_calls.py    # 业务函数模块：20 个函数互相调用，生成随机调用链
 ├── log_analyzer.html    # 日志分析工具：浏览器端可视化日志
+├── serve.py             # 本地 HTTP 服务器，用于运行日志分析器
 ├── 1.log                # 示例日志文件（由 main.py 生成）
-└── QWEN.md              # 项目说明文档
+├── README.md            # 项目简介
+└── QWEN.md              # 项目说明文档（本文件）
 ```
 
 ## 运行方式
@@ -48,8 +50,16 @@ tid:{线程ID}|exit fun:{函数名}@{文件路径}:{行号}
 
 ### 3. 使用分析器查看日志
 
-在浏览器中打开 `log_analyzer.html`，然后：
+**方式一：直接打开**
+- 在浏览器中直接打开 `log_analyzer.html`
 
+**方式二：使用本地服务器（推荐）**
+```bash
+python serve.py
+```
+然后访问 `http://localhost:8080/log_analyzer.html`
+
+在分析器中：
 - 点击 **📂 打开日志文件** 选择 `.log` 文件
 - 左侧显示按线程 ID 分组的列表
 - 点击线程查看树状调用链
@@ -59,10 +69,10 @@ tid:{线程ID}|exit fun:{函数名}@{文件路径}:{行号}
 
 | 类型 | 示例 |
 |------|------|
-| 函数进入 | `tid:20816\|enter fun:func_t@C:\hh\svn\PyCallTrace\function_calls.py:419` |
-| 函数返回 | `tid:20816\|exit fun:should_return@C:\hh\svn\PyCallTrace\function_calls.py:17` |
-| 函数异常 | `tid:20816\|exception fun:{函数名}@{文件路径}:{行号}` |
-| 普通日志 | `tid:20816\|程序开始执行 - 使用loguru日志库` |
+| 函数进入 | `tid:20816|enter fun:func_t@C:\hh\svn\PyCallTrace\function_calls.py:419` |
+| 函数返回 | `tid:20816|exit fun:should_return@C:\hh\svn\PyCallTrace\function_calls.py:17` |
+| 函数异常 | `tid:20816|exception fun:{函数名}@{文件路径}:{行号}` |
+| 普通日志 | `tid:20816|程序开始执行 - 使用loguru日志库` |
 
 ## 核心设计
 
@@ -86,6 +96,12 @@ tid:{线程ID}|exit fun:{函数名}@{文件路径}:{行号}
 - 树状调用链可视化，可展开/折叠
 - 源代码映射查看（通过读取本地 `.py` 文件）
 - LRU 缓存机制，最多缓存 50 个文件
+
+### 本地服务器（serve.py）
+
+- 简单的 Python HTTP 服务器
+- 默认端口：8080
+- 自动设置正确的 MIME 类型（HTML、LOG、PY 文件）
 
 ## 开发约定
 
