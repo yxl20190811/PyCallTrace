@@ -12,7 +12,7 @@ import threading
 
 # 配置日志格式
 fmt = (
-    "<cyan>tid:{thread.id}</cyan>|<green>{file}:{line}</green>|<level>{message}</level>"
+    "<cyan>tid:{thread.id}</cyan>|<green>{file.path}:{line}</green>|<level>{message}</level>"
 )
 
 # 移除默认处理器，添加自定义格式
