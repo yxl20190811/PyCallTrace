@@ -411,7 +411,7 @@
         <button class="btn-open" id="btn-open">📂 打开日志文件</button>
         <button class="btn-mapping" id="btn-mapping-dir">📁 映射目录</button>
         <input type="file" id="file-input" accept=".log">
-        <input type="file" id="mapping-dir-input" webkitdirectory multiple style="display: none;">
+        <input type="file" id="mapping-dir-input" webkitdirectory multiple accept=".py" style="display: none;">
     </div>
 
     <div class="container">
@@ -606,7 +606,7 @@
             const files = Array.from(e.target.files);
             if (files.length === 0) return;
 
-            // 方案 2：文件类型过滤 - 只允许 .py 文件
+            // 文件类型过滤 - 只允许 .py 文件
             const allowedExtensions = ['.py'];
             const filteredFiles = files.filter(file => {
                 const ext = file.name.toLowerCase();
@@ -618,17 +618,17 @@
                 return;
             }
 
-            // 方案 3：限制最大文件数
+            // 限制最大文件数
             const MAX_FILES = 1000;
             let filesToLoad = filteredFiles;
             let skippedCount = 0;
-            
+
             if (filteredFiles.length > MAX_FILES) {
                 skippedCount = filteredFiles.length - MAX_FILES;
                 filesToLoad = filteredFiles.slice(0, MAX_FILES);
             }
 
-            // 方案 4：限制文件大小（5MB）
+            // 限制文件大小（5MB）
             const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
             let oversizedFiles = [];
             filesToLoad = filesToLoad.filter(file => {
@@ -641,7 +641,7 @@
 
             mappingDirFiles.clear();
 
-            // 方案 1：延迟加载 - 只存储 File 对象引用，不读取内容
+            // 延迟加载 - 只存储 File 对象引用，不读取内容
             filesToLoad.forEach(file => {
                 const relativePath = file.webkitRelativePath || file.name;
                 mappingDirFiles.set(relativePath, file);  // 存储 File 对象，不是内容
@@ -649,17 +649,24 @@
 
             // 更新 UI
             btnMappingDir.classList.add('active');
-            let message = `📁 映射目录 (${filesToLoad.length} 文件)`;
+            let message = `📁 映射目录 (${filesToLoad.length} 个 .py 文件)`;
             btnMappingDir.textContent = message;
 
             // 显示统计信息
-            let statsMessage = `成功加载 ${filesToLoad.length} 个 .py 文件`;
+            let statsMessage = `✓ 成功加载 ${filesToLoad.length} 个 .py 文件`;
             if (skippedCount > 0) {
-                statsMessage += `\n跳过 ${skippedCount} 个文件（超过 ${MAX_FILES} 限制）`;
+                statsMessage += `\n\n⚠ 跳过 ${skippedCount} 个 .py 文件（超过 ${MAX_FILES} 个文件限制）`;
             }
             if (oversizedFiles.length > 0) {
-                statsMessage += `\n跳过 ${oversizedFiles.length} 个大文件（>5MB）`;
+                statsMessage += `\n⚠ 跳过 ${oversizedFiles.length} 个大文件（>5MB）`;
             }
+            
+            const totalFilesInDir = files.length;
+            const nonPyFiles = totalFilesInDir - filteredFiles.length;
+            if (nonPyFiles > 0) {
+                statsMessage += `\n\nℹ 目录中共 ${totalFilesInDir} 个文件，其中 ${nonPyFiles} 个非 .py 文件已忽略`;
+            }
+            
             alert(statsMessage);
         });
 
@@ -724,8 +731,6 @@
                 treeContainer.className = 'tree-container';
                 renderTree(treeRoot, treeContainer);
                 logContent.appendChild(treeContainer);
-                const totalNodes = countTreeNodes(treeRoot);
-                logStats.textContent = `共 ${totalNodes} 个节点`;
             } catch (e) {
                 logContent.innerHTML = '<div class="empty-state" style="color:#f44747;">渲染出错: ' + e.message + '</div>';
                 console.error('renderLogContent error:', e);
