@@ -301,6 +301,15 @@
             word-break: break-all;
         }
 
+        .message-node {
+            margin-left: 20px;
+            padding: 2px 8px;
+            color: #ce9178;
+            font-size: 13px;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
         .tree-children {
             display: block;
         }
@@ -727,7 +736,7 @@
          * 根据 enter fun / exit fun / message 构建调用树
          */
         function buildCallTree(lines) {
-            const root = { name: 'root', children: [], messages: [], depth: -1 };
+            const root = { name: 'root', children: [], depth: -1 };
             // 调用栈，用于追踪函数调用层级
             let callStack = [root];
 
@@ -740,9 +749,9 @@
                     const newNode = {
                         name: parsed.content,
                         children: [],
-                        messages: [],
                         depth: 0,
-                        fullName: parsed.content
+                        fullName: parsed.content,
+                        isMessage: false
                     };
                     const currentNode = callStack[callStack.length - 1];
                     currentNode.children.push(newNode);
@@ -753,9 +762,15 @@
                         callStack.pop();
                     }
                 } else {
-                    // 用户信息行：添加到当前节点（栈顶）的消息列表
+                    // 用户信息行：创建消息节点并添加到当前节点（栈顶）的子节点列表
                     const currentNode = callStack[callStack.length - 1];
-                    currentNode.messages.push(parsed.content);
+                    const messageNode = {
+                        isMessage: true,
+                        content: parsed.content,
+                        children: [],
+                        depth: 0
+                    };
+                    currentNode.children.push(messageNode);
                 }
             });
 
@@ -773,6 +788,15 @@
         }
 
         function renderTreeNode(node, parentContainer) {
+            // 如果是消息节点，直接渲染消息内容
+            if (node.isMessage) {
+                const msgElement = document.createElement('div');
+                msgElement.className = 'tree-node message-node';
+                msgElement.innerHTML = `<div class="message-item">${escapeHtml(node.content)}</div>`;
+                parentContainer.appendChild(msgElement);
+                return;
+            }
+
             const nodeElement = createTreeNode(node);
             parentContainer.appendChild(nodeElement);
 
@@ -784,6 +808,15 @@
                     });
                 }
             }
+        }
+
+        /**
+         * 转义 HTML 特殊字符
+         */
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
 
         function createTreeNode(node) {
@@ -907,24 +940,6 @@
                 }
             }
 
-            if (node.messages.length > 0) {
-                const messagesContainer = document.createElement('div');
-                messagesContainer.className = 'tree-messages';
-                
-                node.messages.forEach(msg => {
-                    if (msg.trim() !== '') {
-                        const msgElement = document.createElement('div');
-                        msgElement.className = 'message-item';
-                        msgElement.textContent = msg;
-                        messagesContainer.appendChild(msgElement);
-                    }
-                });
-
-                if (messagesContainer.children.length > 0) {
-                    nodeElement.appendChild(messagesContainer);
-                }
-            }
-
             return nodeElement;
         }
 
@@ -933,7 +948,6 @@
             node.children.forEach(child => {
                 count += countTreeNodes(child);
             });
-            count += node.messages.length;
             return count;
         }
 
